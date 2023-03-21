@@ -1,0 +1,11 @@
+{
+  "domain": "aaa_mint",
+  "name": "Mint",
+  "codeowners": [],
+  "dependencies": ["input_text"],
+  "documentation": "https://github.com/home-assistant/example-custom-config/tree/master/custom_components/mqtt_basic/",
+  "iot_class": "local_polling",
+  "requirements": [],
+  "version": "0.1.0",
+  "config_flow": true
+}
