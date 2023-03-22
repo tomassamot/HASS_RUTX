@@ -28,24 +28,9 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.components import frontend
 
-# from .const import DOMAIN, CONF_TOPIC, DEFAULT_TOPIC
+from .const import DOMAIN, DEVICE_NAME, CONF_TOPIC, DEFAULT_TOPIC
+
 # The domain of your component. Should be equal to the name of your component.
-
-DOMAIN = "aaa_mint"
-DEVICE_NAME = "THE AWESOME DEVICE"  # TODO: delete me when setting up config schema
-
-
-# CONF_DEVICE_NAME = "device_name"
-# DEFAULT_DEVICE_NAME = f"device-{random.randint(0, 1000)}"
-# CONF_BROKER = "broker"
-# CONF_PORT = "port"
-# CONF_TOPIC = "topic"
-# #DEFAULT_TOPIC = "home-assistant/asdf"
-# CONF_CLIENT_ID = "client_id"
-# CONF_USERNAME = "username"
-# DEFAULT_USERNAME = ""
-# CONF_PASSWORD = "password"
-# DEFAULT_PASSWORD = ""
 
 
 # Schema to validate the configured MQTT topic
