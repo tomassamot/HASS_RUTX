@@ -1,0 +1,29 @@
+{
+  "title": "Mint – the best integration on Home Assistant",
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "device_name": "[%key:common::config_flow::data::device_name%]",
+          "address": "[%key:common::config_flow::data::address%]",
+          "port": "[%key:common::config_flow::data::port%]",
+          "username": "[%key:common::config_flow::data::username%]",
+          "password": "[%key:common::config_flow::data::password%]"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "unknown": "[%key:common::config_flow::error::unknown%]g",
+      "invalid_device_name": "[%key:common::config_flow::error::invalid_device_name%]",
+      "invalid_address": "[%key:common::config_flow::error::invalid_address%]",
+      "invalid_port": "[%key:common::config_flow::error::invalid_port%]",
+      "invalid_username": "[%key:common::config_flow::error::invalid_username%]",
+      "invalid_password": "[%key:common::config_flow::error::invalid_password%]"
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured%]"
+    }
+  }
+}
