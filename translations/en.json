@@ -1,0 +1,29 @@
+{
+    "title": "Mint – the best integration on Home Assistant",
+    "config": {
+      "step": {
+        "user": {
+          "title": "Mint configuration",
+          "data": {
+            "device_name": "Device name",
+            "address": "MQTT broker address",
+            "port": "MQTT broker port",
+            "username": "MQTT username",
+            "password": "MQTT password"
+          }
+        }
+      },
+      "error": {
+        "cannot_connect": "Failed to connect",
+        "invalid_device_name": "Invalid device name",
+        "invalid_address": "Invalid address",
+        "invalid_port": "Invalid port",
+        "invalid_username": "Invalid username",
+        "invalid_password": "Invalid password",
+        "unknown": "Unexpected error occured"
+      },
+      "abort": {
+        "already_configured": "Bridge is already configured"
+      }
+    }
+  }

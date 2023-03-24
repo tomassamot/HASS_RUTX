@@ -12,41 +12,37 @@ from homeassistant import exceptions
 
 from homeassistant.components import mqtt
 from homeassistant.components.mqtt.models import ReceiveMessage
+from homeassistant.components.sensor.const import SensorDeviceClass, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import UnitOfInformation
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.components import frontend
+from homeassistant.helpers.entity import Entity
 
 from .const import DOMAIN, CONF_TOPIC, DEFAULT_TOPIC, CONF_DEVICE_NAME
 
-# The domain of your component. Should be equal to the name of your component.
+
+DEVICE_NAME_EID = "mint.device_name"
+FREE_RAM_EID = "mint.free_ram"
+TOTAL_RAM_EID = "mint.total_ram"
 
 
-# Schema to validate the configured MQTT topic
-
-
-# CONFIG_SCHEMA = vol.Schema(
-#     {
-#         DOMAIN: vol.Schema(
-#             {vol.Required(CONF_DEVICE_NAME): mqtt.valid_subscribe_topic},
-#             {vol.Required(CONF_TOPIC)},
-#         )
-#     },
-#     extra=vol.ALLOW_EXTRA,
-# )
-DEFAULT_DEVICE_NAME = "<empty>"
-DEVICE_NAME = DEFAULT_DEVICE_NAME
-
-device_name_eid = "mint.device_name"
-free_ram_eid = "mint.free_ram"
-total_ram_eid = "mint.total_ram"
+def clear_states(hass: HomeAssistant):
+    hass.states.remove(DEVICE_NAME_EID)
+    hass.states.remove(FREE_RAM_EID)
+    hass.states.remove(TOTAL_RAM_EID)
 
 
 def process_message(hass: HomeAssistant, msg: MQTTMessage):
     if msg.topic == "home-assistant/mint/ram":
         data = json.loads(msg.payload)
-        hass.states.set(free_ram_eid, data["free_ram"])
-        hass.states.set(total_ram_eid, data["total_ram"])
+        if data["free_ram"] is None:
+            print("ERR: free_ram is None")
+        if data["total_ram"] is None:
+            print("ERR: total_ram is None")
+        hass.states.set(FREE_RAM_EID, data["free_ram"])
+        hass.states.set(TOTAL_RAM_EID, data["total_ram"])
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -72,37 +68,36 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     username = hass.data[DOMAIN]["username"]
     password = hass.data[DOMAIN]["password"]
 
-    # time.sleep(0.5)
-    # hass.states.set(device_name_eid, hass.data[DOMAIN]["device_name"])
-
     def on_disconnect(client, userdata, rc):
         print("Disconnected...")
         client.loop_stop(force=False)
 
     def connect_mqtt() -> mqtt_client:
-        def on_connect(client, userdata, flags, rc):
-            if rc == 0:
-                hass.states.set(device_name_eid, hass.data[DOMAIN]["device_name"])
-                print("Connected to MQTT Broker!")
-                client.subscribe(topic)
-            else:
-                print("Failed to connect, return code %d\n", rc)
-
         client = mqtt_client.Client(client_id)
         # client.username_pw_set(username, password)
         client.on_connect = on_connect
         client.on_message = on_message
         client.on_disconnect = on_disconnect
+        client.on_connect_fail = on_connect_fail
         print(f"trying to connnect to {broker}:{port}...")
         client.connect(broker, int(port))
         return client
+
+    def on_connect(client, userdata, flags, rc):
+        if rc == 0:
+            hass.states.set(DEVICE_NAME_EID, hass.data[DOMAIN]["device_name"])
+            client.subscribe(topic)
+        else:
+            clear_states(hass)
+
+    def on_connect_fail(client, userdata, flags, rc):
+        clear_states(hass)
 
     def on_message(client, userdata, msg: MQTTMessage):
         print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
         # if hass.states.get(device_name_eid) == DEFAULT_DEVICE_NAME:
         #     hass.states.set(device_name_eid, hass.data[DOMAIN]["device_name"])
 
-        print("DEVICE_NAME: ", DEVICE_NAME)
         # hass.states.set(device_name_eid, DEVICE_NAME)
         try:
             process_message(hass, msg)
@@ -121,10 +116,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 def setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the MQTT example component."""
     print("I AM FIRST")
-    hass.states.set(device_name_eid, "<empty>")
-    hass.states.set(free_ram_eid, "<empty>")
-    hass.states.set(total_ram_eid, "<empty>")
+    init_states(hass)
 
     # Return boolean to indicate that initialization was successfully.
     return True
+
+
+def init_states(hass: HomeAssistant):
+    hass.states.set(DEVICE_NAME_EID, "<empty>")
+    hass.states.set(FREE_RAM_EID, "<empty>")
+    hass.states.set(TOTAL_RAM_EID, "<empty>")
 
