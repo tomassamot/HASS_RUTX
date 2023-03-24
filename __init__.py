@@ -15,7 +15,7 @@ from homeassistant.components.mqtt.models import ReceiveMessage
 from homeassistant.components.sensor.const import SensorDeviceClass, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfInformation
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall, State
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.components import frontend
 from homeassistant.helpers.entity import Entity
@@ -26,6 +26,22 @@ from .const import DOMAIN, CONF_TOPIC, DEFAULT_TOPIC, CONF_DEVICE_NAME
 DEVICE_NAME_EID = "mint.device_name"
 FREE_RAM_EID = "mint.free_ram"
 TOTAL_RAM_EID = "mint.total_ram"
+
+DEVICE_NAME_ATTR = {"friendly_name": "Device name", "icon": "mdi:router"}
+FREE_RAM_ATTR = {
+    "friendly_name": "Free RAM",
+    "icon": "mdi:database",
+    "unit_of_measurement": "B",
+}
+TOTAL_RAM_ATTR = {
+    "friendly_name": "Total RAM",
+    "icon": "mdi:database",
+    "unit_of_measurement": "B",
+}
+
+DEVICE_NAME_STATE: State
+FREE_RAM_STATE: State
+TOTAL_RAM_STATE: State
 
 
 def clear_states(hass: HomeAssistant):
@@ -41,8 +57,8 @@ def process_message(hass: HomeAssistant, msg: MQTTMessage):
             print("ERR: free_ram is None")
         if data["total_ram"] is None:
             print("ERR: total_ram is None")
-        hass.states.set(FREE_RAM_EID, data["free_ram"])
-        hass.states.set(TOTAL_RAM_EID, data["total_ram"])
+        hass.states.set(FREE_RAM_EID, data["free_ram"], FREE_RAM_ATTR)
+        hass.states.set(TOTAL_RAM_EID, data["total_ram"], TOTAL_RAM_ATTR)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -85,7 +101,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     def on_connect(client, userdata, flags, rc):
         if rc == 0:
-            hass.states.set(DEVICE_NAME_EID, hass.data[DOMAIN]["device_name"])
+            hass.states.set(
+                DEVICE_NAME_EID, hass.data[DOMAIN]["device_name"], DEVICE_NAME_ATTR
+            )
             client.subscribe(topic)
         else:
             clear_states(hass)
@@ -95,10 +113,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     def on_message(client, userdata, msg: MQTTMessage):
         print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
-        # if hass.states.get(device_name_eid) == DEFAULT_DEVICE_NAME:
-        #     hass.states.set(device_name_eid, hass.data[DOMAIN]["device_name"])
-
-        # hass.states.set(device_name_eid, DEVICE_NAME)
         try:
             process_message(hass, msg)
         except Exception:
@@ -123,7 +137,7 @@ def setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 
 def init_states(hass: HomeAssistant):
-    hass.states.set(DEVICE_NAME_EID, "<empty>")
-    hass.states.set(FREE_RAM_EID, "<empty>")
-    hass.states.set(TOTAL_RAM_EID, "<empty>")
+    hass.states.set(DEVICE_NAME_EID, "<empty>", DEVICE_NAME_ATTR)
+    hass.states.set(FREE_RAM_EID, "<empty>", FREE_RAM_ATTR)
+    hass.states.set(TOTAL_RAM_EID, "<empty>", TOTAL_RAM_ATTR)
 
