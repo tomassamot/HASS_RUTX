@@ -18,9 +18,11 @@
         "invalid_device_name": "Invalid device name",
         "invalid_address": "Invalid address",
         "invalid_port": "Invalid port",
+        "invalid_address_or_port": "Unable to connect to broker. Check address and port and whether the broker is turned on",
         "invalid_username": "Invalid username",
         "invalid_password": "Invalid password",
-        "unknown": "Unexpected error occured"
+        "invalid_username_or_password": "Invalid username or password. Please check and try again.",
+        "unknown": "Unexpected error occured. Please try again."
       },
       "abort": {
         "already_configured": "Bridge is already configured"
