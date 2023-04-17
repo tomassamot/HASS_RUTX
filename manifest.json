@@ -3,7 +3,7 @@
   "name": "Mint",
   "codeowners": [],
   "dependencies": ["button"],
-  "documentation": "https://github.com/home-assistant/example-custom-config/tree/master/custom_components/mqtt_basic/",
+  "documentation": "https://github.com/tomassamot/HASS_RUTX",
   "iot_class": "local_polling",
   "requirements": [],
   "version": "0.1.0",

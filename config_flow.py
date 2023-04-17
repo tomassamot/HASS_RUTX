@@ -94,17 +94,17 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class InvalidAddressOrPort(Exception):
-    ...
+    """Exception for when either Address or Port is invalid in any way"""
 
 
 class InvalidAddress(Exception):
-    ...
+    """Exception for when Address is invalid in any way"""
 
 
 class InvalidPort(Exception):
-    ...
+    """Exception for when Port is invalid in any way"""
 
 
 class InvalidUsernameOrPassword(Exception):
-    ...
+    """Exception for when either Username or PAssword is invalid in any way"""
 

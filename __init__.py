@@ -11,8 +11,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers.typing import ConfigType
 
-import homeassistant.components.input_text
-
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -58,14 +56,9 @@ IP_ATTR = {
 }
 
 
-def remove_illegal_characters(string):
-    string = string.replace(".", "_")
-    string = string.replace("-", "_")
-    return string
-
-
 def process_message(hass: HomeAssistant, msg: MQTTMessage):
-    data = json.loads(msg.payload)
+    """Process message, received from MQTT broker"""
+    data: json = json.loads(msg.payload)
 
     if msg.topic == RAM_TOPIC:
         if "total" in data:
@@ -78,79 +71,101 @@ def process_message(hass: HomeAssistant, msg: MQTTMessage):
     elif msg.topic == EMOTION_RESPONSE_TOPIC:
         if "emotion" in data:
             hass.states.set(EMOTION_EID, data["emotion"], EMOTION_ATTR)
+
     elif msg.topic == IP_TOPIC:
         if "value" in data:
             hass.states.set(IP_EID, data["value"], IP_ATTR)
 
     elif msg.topic == WIRELESS_TOPIC:
-        radio_name = remove_illegal_characters(data["radio_name"])
-        if "up" in data:
-            hass.states.set(
-                "mint." + radio_name + "_up",
-                data["up"],
-                {"icon": "mdi:alarm-light", "friendly_name": "On"}
-                if data["up"] == 1
-                else {"icon": "mdi:alarm-light-off", "friendly_name": "Off"},
-            )
-        if "channel" in data:
-            hass.states.set(
-                "mint." + radio_name + "_channel",
-                data["channel"],
-                {"friendly_name": "Channel"},
-            )
-        if "hwmode" in data:
-            hass.states.set(
-                "mint." + radio_name + "_hwmode",
-                data["hwmode"],
-                {"friendly_name": "Hardware mode"},
-            )
-        if "htmode" in data:
-            hass.states.set(
-                "mint." + radio_name + "_htmode",
-                data["htmode"],
-                {"friendly_name": "High throughput mode"},
-            )
 
-        if "all_interfaces" not in data:
-            return
+        def get_radio_information(radio: dict[str, any], radio_name):
+            if "up" in radio:
+                hass.states.set(
+                    "mint." + radio_name + "_up",
+                    radio["up"],
+                    {"icon": "mdi:alarm-light", "friendly_name": "On"}
+                    if radio["up"] == 1
+                    else {"icon": "mdi:alarm-light-off", "friendly_name": "Off"},
+                )
 
-        for interface in data["all_interfaces"]:
-            # ifname is required to create unique entities
-            if "ifname" not in interface:
-                break
-            original_ifname = interface["ifname"]
-            safe_ifname = remove_illegal_characters(original_ifname)
-            if "conn_devices" in interface:
-                hass.states.set(
-                    "mint." + radio_name + "_" + safe_ifname + "_conn_devices",
-                    interface["conn_devices"],
-                    {
-                        "icon": "mdi:cellphone-wireless",
-                        "friendly_name": original_ifname + ": connected devices",
-                    },
-                )
-            if "ifconfig.ssid" in interface:
-                hass.states.set(
-                    "mint." + radio_name + "_" + safe_ifname + "_ifconfig_ssid",
-                    interface["ifconfig.ssid"],
-                    {
-                        "icon": "mdi:wifi",
-                        "friendly_name": original_ifname + ": ssid",
-                    },
-                )
-            if "ifconfig.wifi_id" in interface:
-                hass.states.set(
-                    "mint." + radio_name + "_" + safe_ifname + "_ifconfig_wifi_id",
-                    interface["ifconfig.wifi_id"],
-                    {
-                        "icon": "mdi:wifi",
-                        "friendly_name": original_ifname + ": wifi id",
-                    },
-                )
+            if "config" in radio:
+                config = radio["config"]
+                if "channel" in config:
+                    hass.states.set(
+                        "mint." + radio_name + "_channel",
+                        config["channel"],
+                        {"friendly_name": "Channel"},
+                    )
+                if "hwmode" in config:
+                    hass.states.set(
+                        "mint." + radio_name + "_hwmode",
+                        config["hwmode"],
+                        {"friendly_name": "Hardware mode"},
+                    )
+                if "htmode" in config:
+                    hass.states.set(
+                        "mint." + radio_name + "_htmode",
+                        config["htmode"],
+                        {"friendly_name": "High throughput mode"},
+                    )
+
+            if "interfaces" in radio:
+                for interface in radio["interfaces"]:
+                    # ifname is required to create unique entities
+                    if "ifname" not in interface:
+                        continue
+                    original_ifname = interface["ifname"]
+                    safe_ifname = remove_illegal_characters(original_ifname)
+                    if "conn_devices" in interface:
+                        hass.states.set(
+                            "mint." + radio_name + "_" + safe_ifname + "_conn_devices",
+                            interface["conn_devices"],
+                            {
+                                "icon": "mdi:cellphone-wireless",
+                                "friendly_name": original_ifname
+                                + ": Connected devices",
+                            },
+                        )
+                    if "config" in interface:
+                        ifconfig = interface["config"]
+                        if "ssid" in ifconfig:
+                            hass.states.set(
+                                "mint."
+                                + radio_name
+                                + "_"
+                                + safe_ifname
+                                + "_ifconfig_ssid",
+                                ifconfig["ssid"],
+                                {
+                                    "icon": "mdi:wifi",
+                                    "friendly_name": original_ifname + ": ssid",
+                                },
+                            )
+                        if "wifi_id" in ifconfig:
+                            hass.states.set(
+                                "mint."
+                                + radio_name
+                                + "_"
+                                + safe_ifname
+                                + "_ifconfig_wifi_id",
+                                ifconfig["wifi_id"],
+                                {
+                                    "icon": "mdi:wifi",
+                                    "friendly_name": original_ifname + ": wifi id",
+                                },
+                            )
+
+        def remove_illegal_characters(string):
+            string = string.replace(".", "_")
+            string = string.replace("-", "_")
+            return string
+
+        for radio_name in data:
+            get_radio_information(data[radio_name], radio_name)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Hello World from a config entry."""
+    """Set up from a config entry."""
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN] = entry.data
 
@@ -190,11 +205,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 client.publish(EMOTION_REQUEST_TOPIC, payload=None)
 
             def change_ip(arg):
-                input = hass.states.get("sensor.new_ip").name
+                newip_input = hass.states.get("sensor.new_ip").name
                 pattern = re.compile("[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+")
 
-                if pattern.match(input) is not None:
-                    client.publish(NEW_IP_TOPIC, payload=input)
+                if pattern.match(newip_input) is not None:
+                    client.publish(NEW_IP_TOPIC, payload=newip_input)
 
             hass.bus.listen("send_emotion_request", get_emotion)
 
@@ -229,14 +244,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 def setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Set up the MQTT example component."""
+    """Set up the component."""
     init_states(hass)
     # Return boolean to indicate that initialization was successfully.
     return True
 
 
 def init_states(hass: HomeAssistant):
-    # hass.states.set(DEVICE_NAME_EID, None, DEVICE_NAME_ATTR)
     hass.states.set(IP_EID, None, IP_ATTR)
     hass.states.set(EMOTION_EID, None, EMOTION_ATTR)
 
