@@ -1,5 +1,5 @@
 # HASS_RUTX (mint)
-Home Assistant integration for processing, displaying and sending MQTT messages.
+Home Assistant integration for communicating with a C program and processing, displaying and sending MQTT messages.
 ## Installation
 Follow the steps below to install the integration.  
   
