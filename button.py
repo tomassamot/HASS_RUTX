@@ -9,7 +9,7 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ):
-    async_add_entities([EmotionButton(), IpChangeButton()])
+    async_add_entities([EmotionButton(), IpChangeButton(), BanButton()])
 
 
 class EmotionButton(ButtonEntity):
@@ -18,7 +18,7 @@ class EmotionButton(ButtonEntity):
 
     def press(self) -> None:
         """Handle the button press."""
-        self.hass.bus.fire("send_emotion_request", {})
+        self.hass.bus.fire("mint_send_emotion_request", {})
 
 
 class IpChangeButton(ButtonEntity):
@@ -26,6 +26,13 @@ class IpChangeButton(ButtonEntity):
     _attr_unique_id = "ip_changer1"
 
     def press(self) -> None:
-        """Handle the button press."""
-        self.hass.bus.fire("send_new_ip", {})
+        self.hass.bus.fire("mint_send_new_ip", {})
+
+
+class BanButton(ButtonEntity):
+    _attr_name = "Ban given device"
+    _attr_unique_id = "ban_hammer"
+
+    def press(self) -> None:
+        self.hass.bus.fire("mint_ban_device", {})
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import logging
+import requests
 
 from paho.mqtt import client as mqtt_client
 from paho.mqtt.client import MQTTMessage
@@ -22,6 +23,7 @@ INIT_TOPIC = "home-assistant/mint/init"
 EMOTION_REQUEST_TOPIC = "home-assistant/mint/emotion_req"
 EMOTION_RESPONSE_TOPIC = "home-assistant/mint/emotion_res"
 WIRELESS_TOPIC = "home-assistant/mint/wireless"
+BAN_DEVICE_TOPIC = "home-assistant/mint/ban_device"
 
 DEVICE_NAME_EID = "mint.device_name"
 TOTAL_RAM_EID = "mint.total_ram"
@@ -82,7 +84,7 @@ def process_message(hass: HomeAssistant, msg: MQTTMessage):
             if "up" in radio:
                 hass.states.set(
                     "mint." + radio_name + "_up",
-                    radio["up"],
+                    "",
                     {"icon": "mdi:alarm-light", "friendly_name": "On"}
                     if radio["up"] == 1
                     else {"icon": "mdi:alarm-light-off", "friendly_name": "Off"},
@@ -124,6 +126,19 @@ def process_message(hass: HomeAssistant, msg: MQTTMessage):
                                 "icon": "mdi:cellphone-wireless",
                                 "friendly_name": original_ifname
                                 + ": Connected devices",
+                            },
+                        )
+                    if "banned_devices" in interface:
+                        hass.states.set(
+                            "mint."
+                            + radio_name
+                            + "_"
+                            + safe_ifname
+                            + "_banned_devices",
+                            interface["banned_devices"],
+                            {
+                                "icon": "mdi:cellphone-wireless",
+                                "friendly_name": original_ifname + ": Banned devices",
                             },
                         )
                     if "config" in interface:
@@ -199,6 +214,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 DEVICE_NAME_EID, hass.data[DOMAIN]["device_name"], DEVICE_NAME_ATTR
             )
 
+            hass.states.remove("sensor.new_ip")
             client.subscribe(topic)
 
             def get_emotion(arg):
@@ -211,9 +227,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 if pattern.match(newip_input) is not None:
                     client.publish(NEW_IP_TOPIC, payload=newip_input)
 
-            hass.bus.listen("send_emotion_request", get_emotion)
+            def ban_device(arg):
+                addr = hass.states.get("sensor.device_to_ban").name
+                ifname = hass.states.get("sensor.interface_name").name
+                try:
+                    ban_time = int(hass.states.get("sensor.ban_duration").name)
+                except Exception as ex:
+                    _LOGGER.warn(
+                        f"Exception when trying to read ban_time: {ex}. Defaulting ban_time to 5 seconds (5000)."
+                    )
+                    ban_time = 5000
 
-            hass.bus.listen("send_new_ip", change_ip)
+                message = json.dumps(
+                    {"addr": addr, "ban_time": ban_time, "ifname": ifname}
+                )
+
+                client.publish(BAN_DEVICE_TOPIC, payload=message)
+
+            hass.bus.listen("mint_send_emotion_request", get_emotion)
+            hass.bus.listen("mint_send_new_ip", change_ip)
+            hass.bus.listen("mint_ban_device", ban_device)
 
     def on_message(client, userdata, msg: MQTTMessage):
         print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
@@ -245,7 +278,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 def setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the component."""
+    hass.states.remove("sensor.new_ip")
     init_states(hass)
+
     # Return boolean to indicate that initialization was successfully.
     return True
 
