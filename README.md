@@ -8,7 +8,7 @@ Follow the steps below to install the integration.
 3. Launch Home Assistant  
 4. Go to Settings->Devices & Services  
 5. Click "Add integration"  
-6. Search for "Mint"  
+6. Search for "Mint" and click on it
 7. Fill out required information  
 ## Dashboard setup
 Follow the steps below to setup the dashboard with the main states created by the integration.  
