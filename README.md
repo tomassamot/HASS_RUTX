@@ -19,7 +19,7 @@ Follow the steps below to setup the dashboard with the main states created by th
 4. Again click the three dots in the upper right corner  
 5. Press "Raw configuration editor"  
 6. Append the "cards" YAML object with the text below:  
-```
+```yaml
 - type: entities
   entities:
     - entity: mint.device_name
