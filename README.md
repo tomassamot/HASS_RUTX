@@ -1,6 +1,6 @@
 # HASS_RUTX (mint)
 Home Assistant integration for processing, displaying and sending MQTT messages.
-##Installation
+## Installation
 Follow the steps below to install the integration.  
   
 1. Create a "custom_components" folder in the Home Assistant "config" directory  
@@ -10,7 +10,7 @@ Follow the steps below to install the integration.
 5. Click "Add integration"  
 6. Search for "Mint"  
 7. Fill out required information  
-##Dashboard setup
+## Dashboard setup
 Follow the steps below to setup the dashboard with the main states created by the integration.  
   
 1. Go to Overview  
