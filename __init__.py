@@ -24,6 +24,8 @@ EMOTION_REQUEST_TOPIC = "home-assistant/mint/emotion_req"
 EMOTION_RESPONSE_TOPIC = "home-assistant/mint/emotion_res"
 WIRELESS_TOPIC = "home-assistant/mint/wireless"
 BAN_DEVICE_TOPIC = "home-assistant/mint/ban_device"
+LAN_PORTS_TOPIC = "home-assistant/mint/lan_ports"
+DHCP_LEASES_TOPIC = "home-assistant/mint/dhcp_leases"
 
 DEVICE_NAME_EID = "mint.device_name"
 TOTAL_RAM_EID = "mint.total_ram"
@@ -60,6 +62,13 @@ IP_ATTR = {
 
 def process_message(hass: HomeAssistant, msg: MQTTMessage):
     """Process message, received from MQTT broker"""
+
+    def remove_illegal_characters(string):
+        string = string.replace(".", "_")
+        string = string.replace("-", "_")
+        string = string.replace(" ", "_")
+        return string
+
     data: json = json.loads(msg.payload)
 
     if msg.topic == RAM_TOPIC:
@@ -170,13 +179,98 @@ def process_message(hass: HomeAssistant, msg: MQTTMessage):
                                 },
                             )
 
-        def remove_illegal_characters(string):
-            string = string.replace(".", "_")
-            string = string.replace("-", "_")
-            return string
-
         for radio_name in data:
             get_radio_information(data[radio_name], radio_name)
+
+    elif msg.topic == LAN_PORTS_TOPIC:
+        for key in data:
+            lan_name = remove_illegal_characters(key)
+            lan = data[key]
+            if "speed" in lan:
+                hass.states.set(
+                    "mint." + lan_name + "_speed",
+                    lan["speed"],
+                    {
+                        "icon": "mdi:lightning-bolt",
+                        "friendly_name": lan_name.upper() + " speed",
+                    },
+                )
+            if "state" in lan:
+                hass.states.set(
+                    "mint." + lan_name + "_state",
+                    "",
+                    {
+                        "icon": "mdi:ethernet-cable",
+                        "friendly_name": lan_name.upper() + " IS UP",
+                    }
+                    if lan["state"] == "up"
+                    else {
+                        "icon": "mdi:ethernet-cable-off",
+                        "friendly_name": lan_name + " IS DOWN",
+                    },
+                )
+            if "topology" in lan:
+                hass.states.set(
+                    "mint." + lan_name + "_mac",
+                    lan["topology"],
+                    {
+                        "icon": "mdi:ethernet",
+                        "friendly_name": lan_name.upper() + " MAC",
+                    },
+                )
+
+    elif msg.topic == DHCP_LEASES_TOPIC:
+        lease_hostnames = ""
+        lease_ipaddrs = ""
+        lease_macs = ""
+
+        is_first_iteration = True
+        for lease in data:
+            if "hostname" not in lease:
+                if is_first_iteration:
+                    lease_hostnames += "*"
+                else:
+                    lease_hostnames += ",*"
+            else:
+                if is_first_iteration:
+                    lease_hostnames += lease["hostname"]
+                else:
+                    lease_hostnames += "," + lease["hostname"]
+
+            if "ipaddr" not in lease:
+                if is_first_iteration:
+                    lease_ipaddrs += "*"
+                else:
+                    lease_ipaddrs += ",*"
+            else:
+                if is_first_iteration:
+                    lease_ipaddrs += lease["ipaddr"]
+                else:
+                    lease_ipaddrs += "; " + lease["ipaddr"]
+
+            if "mac" not in lease:
+                if is_first_iteration:
+                    lease_macs += "*"
+                else:
+                    lease_macs += ", *"
+            else:
+                if is_first_iteration:
+                    lease_macs += lease["mac"]
+                else:
+                    lease_macs += "; " + lease["mac"]
+
+            if is_first_iteration:
+                is_first_iteration = False
+
+        hass.states.set(
+            "mint.lease_hostnames", lease_hostnames, {"friendly_name": "Host names"}
+        )
+        hass.states.set(
+            "mint.lease_ipaddrs", lease_ipaddrs, {"friendly_name": "IP addresses"}
+        )
+        hass.states.set(
+            "mint.lease_macs", lease_macs, {"friendly_name": "MAC addresses"}
+        )
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -225,7 +319,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 pattern = re.compile("[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+")
 
                 if pattern.match(newip_input) is not None:
-                    client.publish(NEW_IP_TOPIC, payload=newip_input)
+                    message = json.dumps({"new_ip": str(newip_input)})
+                    client.publish(NEW_IP_TOPIC, payload=message)
 
             def ban_device(arg):
                 addr = hass.states.get("sensor.device_to_ban").name
